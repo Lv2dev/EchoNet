@@ -38,3 +38,6 @@ out/
 
 ### common ###
 .properties
+application.properties
+
+**/src/main/resources/**
