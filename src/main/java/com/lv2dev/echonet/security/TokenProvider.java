@@ -32,7 +32,7 @@ public class TokenProvider {
                 .signWith(SignatureAlgorithm.HS512, SECRET_KEY)
                 // payload에 들어갈 내용
                 .setSubject(String.valueOf(memberDTO.getId())) //sub
-                .setIssuer("CloudGuard") //iss
+                .setIssuer("echonet") //iss
                 .setIssuedAt(new Date()) //iat
                 .setExpiration(expiryDate) //exp
                 .compact();
