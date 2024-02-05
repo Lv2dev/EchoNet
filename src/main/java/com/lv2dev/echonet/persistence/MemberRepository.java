@@ -5,6 +5,8 @@ import org.springframework.stereotype.Repository;
 
 import com.lv2dev.echonet.model.Member;
 
+import java.util.Optional;
+
 @Repository
 public interface MemberRepository extends JpaRepository<Member, Integer> {
     /**
@@ -25,6 +27,6 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
     /**
      * 아이디로 찾기
      * */
-    Member findById(Long id);
+    Optional<Member> findById(Long id);
 
 }
