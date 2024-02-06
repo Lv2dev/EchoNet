@@ -3,22 +3,35 @@ package com.lv2dev.echonet.auth;
 import com.lv2dev.echonet.model.Member;
 import com.lv2dev.echonet.persistence.MemberRepository;
 import com.lv2dev.echonet.service.TokenService;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-class TokenServiceTest {
+@ExtendWith(SpringExtension.class)
+@SpringBootTest
+public class TokenServiceTest {
 
+    @Autowired
     @InjectMocks
     private TokenService tokenService;
 
-    @Mock
+    @MockBean
     private MemberRepository memberRepository;
 
     @Value("${secretKey}")
@@ -35,55 +48,50 @@ class TokenServiceTest {
     }
 
     @Test
+    @DisplayName("Create Access Token - Should not be null and follow JWT format")
     void createAccessToken() {
-        // Act
         String token = tokenService.createAccessToken(member);
-
-        // Assert
-        assertNotNull(token);
-        // 여기서는 토큰이 생성되었는지만 확인합니다. 실제 토큰의 구조나 유효성은 별도의 라이브러리 함수를 사용해 검증해야 합니다.
+        assertNotNull(token, "Access Token should not be null");
+        assertTrue(token.split("\\.").length == 3, "The token must have 3 parts separated by dots.");
     }
 
     @Test
+    @DisplayName("Validate Token - Should return true for a valid token")
     void isTokenValid() {
-        // Arrange
         String validToken = tokenService.createAccessToken(member);
-
-        // Act
         boolean isValid = tokenService.isTokenValid(validToken);
-
-        // Assert
-        assertTrue(isValid);
+        assertTrue(isValid, "The token validation should return true for a valid token");
     }
 
     @Test
+    @DisplayName("Verify Token Claims - Should correctly set subject, issuedAt, and expiration")
+    void tokenClaimsAreValid() {
+        String token = tokenService.createAccessToken(member);
+        Claims claims = Jwts.parser().setSigningKey(secretKey).build().parseClaimsJws(token).getBody();
+        assertEquals(member.getId().toString(), claims.getSubject(), "The subject should match the member's ID.");
+        assertNotNull(claims.getIssuedAt(), "Token should have an issue date.");
+        assertNotNull(claims.getExpiration(), "Token should have an expiration date.");
+    }
+
+    @Test
+    @DisplayName("Create Refresh Token - Should not be null")
     void createRefreshToken() {
-        // Act
         String refreshToken = tokenService.createRefreshToken(member);
-
-        // Assert
-        assertNotNull(refreshToken);
+        assertNotNull(refreshToken, "Refresh Token should not be null");
     }
 
     @Test
+    @DisplayName("Validate Refresh Token - Should return true for a valid token")
     void isRefreshTokenValid() {
-        // Arrange
         String validRefreshToken = tokenService.createRefreshToken(member);
-
-        // Act
         boolean isValid = tokenService.isRefreshTokenValid(validRefreshToken);
-
-        // Assert
-        assertTrue(isValid);
+        assertTrue(isValid, "The refresh token validation should return true for a valid token");
     }
 
     @Test
-    void refreshAccessToken_WithInvalidToken_ShouldThrowException() {
-        // Arrange
+    @DisplayName("Refresh Access Token with Invalid Token - Should throw IllegalArgumentException")
+    void refreshAccessTokenWithInvalidTokenShouldThrowException() {
         String invalidRefreshToken = "invalidToken";
-
-        // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> tokenService.refreshAccessToken(invalidRefreshToken));
+        assertThrows(IllegalArgumentException.class, () -> tokenService.refreshAccessToken(invalidRefreshToken), "Expected IllegalArgumentException for invalid refresh token.");
     }
 }
-

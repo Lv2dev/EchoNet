@@ -19,7 +19,7 @@ public class TokenService {
     private final MemberRepository memberRepository;
 
     @Value("${secretKey}")
-    private String secretKey;
+    private final String secretKey;
 
     /**
      * AccessToken 발급하기
