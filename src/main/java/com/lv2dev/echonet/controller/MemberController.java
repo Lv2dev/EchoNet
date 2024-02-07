@@ -27,7 +27,6 @@ public class MemberController {
             // 여기서 ResponseStatusException을 catch하고, 이를 바탕으로 적절한 응답을 반환합니다.
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
         } catch (Exception e) {
-            // 다른 예외 처리: 시스템 오류 등
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred");
         }
     }
