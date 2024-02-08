@@ -1,12 +1,17 @@
 package com.lv2dev.echonet.controller;
 
 import com.lv2dev.echonet.model.Member;
+import com.lv2dev.echonet.persistence.MemberRepository;
 import com.lv2dev.echonet.service.TokenService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/auth")
@@ -14,6 +19,10 @@ public class TokenController {
 
     @Autowired
     private TokenService tokenService;
+
+    private MemberRepository memberRepository;
+
+    private PasswordEncoder passwordEncoder;
 
     /**
      * 사용자 로그인 처리.
@@ -25,13 +34,26 @@ public class TokenController {
      */
     @PostMapping("/login")
     public ResponseEntity<String> login(@RequestBody Member loginDetails, HttpServletResponse response) {
-        // 사용자 인증 로직 구현 필요
-        String accessToken = tokenService.createAccessToken(loginDetails);
-        String refreshToken = tokenService.createRefreshToken(loginDetails);
+        // 사용자 이메일로 멤버 조회
+        Member member = memberRepository.findByEmail(loginDetails.getEmail())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid email or password"));
 
+        // 비밀번호 검증
+        if (!passwordEncoder.matches(loginDetails.getPassword(), member.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid email or password");
+        }
+
+        // AccessToken 생성
+        String accessToken = tokenService.createAccessToken(member);
+        // RefreshToken 생성 및 저장
+        String refreshToken = tokenService.createRefreshToken(member);
+        member.setRefreshToken(refreshToken);
+        memberRepository.save(member);
+
+        // RefreshToken을 HttpOnly 쿠키로 설정
         setRefreshTokenCookie(response, refreshToken);
 
-        return ResponseEntity.ok().body(accessToken);
+        return ResponseEntity.ok().header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken).body("Login successful");
     }
 
     /**

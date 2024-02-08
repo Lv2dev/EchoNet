@@ -12,7 +12,7 @@ public interface MemberRepository extends JpaRepository<Member, Integer> {
     /**
      * 이메일로 찾기
      * */
-    Member findByEmail(String email);
+    Optional<Member> findByEmail(String email);
 
     /**
      * existsByEmail
