@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
@@ -64,5 +65,49 @@ public class MemberService {
         // 비밀번호 규칙: 특수문자 1개 이상, 대문자 1개 이상, 영문자, 소문자
         String passwordPattern = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$";
         return password.matches(passwordPattern);
+    }
+
+
+    /**
+     * 제공된 정보를 기반으로 기존 회원의 정보를 업데이트합니다.
+     * 새로운 비밀번호, 닉네임, 또는 프로필 이미지가 제공되면 해당 필드를 업데이트합니다.
+     *
+     * @param memberId 업데이트할 회원의 ID.
+     * @param memberDTO 회원의 새 정보가 담긴 객체.
+     * @param profileImage 업데이트가 요청된 새 프로필 이미지 파일; 그렇지 않으면 null.
+     * @return 업데이트된 {@link Member} 엔티티.
+     * @throws IOException 프로필 이미지 업로드 중 오류 발생 시.
+     */
+    public Member updateMemberInfo(Long memberId, MemberDTO memberDTO, MultipartFile profileImage) throws IOException {
+        Member existingMember = findMemberById(memberId);
+        updateMemberDetails(existingMember, memberDTO);
+        updateProfileImageIfNeeded(existingMember, profileImage);
+        return memberRepository.save(existingMember);
+    }
+
+    private Member findMemberById(Long memberId) {
+        return memberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("Member not found with id: " + memberId));
+    }
+
+    private void updateMemberDetails(Member member, MemberDTO memberDTO) {
+        if (memberDTO.getPassword() != null && !memberDTO.getPassword().isEmpty()) {
+            member.setPassword(passwordEncoder.encode(memberDTO.getPassword()));
+        }
+        if (memberDTO.getNickname() != null && !memberDTO.getNickname().isEmpty()) {
+            member.setNickname(memberDTO.getNickname());
+        }
+    }
+
+    private void updateProfileImageIfNeeded(Member member, MultipartFile profileImage) throws IOException {
+        if (profileImage != null && !profileImage.isEmpty()) {
+            String profileUrl = uploadProfileImage(profileImage);
+            member.setProfile(profileUrl);
+        }
+    }
+
+    private String uploadProfileImage(MultipartFile profileImage) throws IOException {
+        String uniqueFileName = UUID.randomUUID().toString() + "_" + System.currentTimeMillis();
+        return s3Service.uploadFile(profileImage, "member/profile", uniqueFileName);
     }
 }
