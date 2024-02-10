@@ -1,41 +1,33 @@
 package com.lv2dev.echonet.auth;
 
-// JUnit Jupiter API를 사용하는 테스트 클래스에 필요한 어노테이션입니다. JUnit 5에서 제공하는 기능을 활용할 수 있게 해줍니다.
 import com.lv2dev.echonet.dto.MemberDTO;
 import com.lv2dev.echonet.model.Member;
 import com.lv2dev.echonet.persistence.MemberRepository;
 import com.lv2dev.echonet.service.MemberService;
 import com.lv2dev.echonet.service.S3Service;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-// Spring Boot 테스트와 JUnit 5를 연동하기 위한 어노테이션입니다. 이를 통해 Spring TestContext Framework를 JUnit 5와 함께 사용할 수 있습니다.
 import org.junit.jupiter.api.extension.ExtendWith;
-// Mockito의 어노테이션으로, 자동으로 의존성을 주입할 대상에 사용합니다.
 import org.mockito.InjectMocks;
-// 테스트 대상에서 사용되는 의존성을 모의 객체로 생성하기 위한 어노테이션입니다.
 import org.mockito.Mock;
-// Spring Boot 기반의 테스트를 위해 ApplicationContext를 로드하고, Spring Bean을 테스트에 주입할 수 있게 해주는 어노테이션입니다.
 import org.springframework.beans.factory.annotation.Autowired;
-// Spring Boot 테스트를 위한 기본 어노테이션. 전체 애플리케이션 컨텍스트를 로드하여 통합 테스트 환경을 제공합니다.
 import org.springframework.boot.test.context.SpringBootTest;
-// Spring 테스트 환경에서 Mock 객체를 사용하기 위한 어노테이션입니다. @MockBean으로 선언된 객체는 Spring 컨텍스트에 등록되어, 해당 타입의 모든 @Autowired 필드에 자동으로 주입됩니다.
 import org.springframework.boot.test.mock.mockito.MockBean;
-// 비밀번호 인코딩을 위한 Spring Security의 구성 요소입니다.
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
-// JUnit Jupiter를 사용하여 Spring TestContext Framework를 활성화하는 데 사용되는 어노테이션입니다.
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-// 정적 메소드 import를 통해 Mockito와 BDDMockito의 메소드를 직접 호출할 수 있습니다.
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.BDDMockito.given;
 
-// Spring의 테스트 지원을 받으며, JUnit 5를 사용하여 테스트 클래스를 실행합니다.
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
 public class MemberServiceTest {
@@ -53,72 +45,197 @@ public class MemberServiceTest {
     @InjectMocks
     private MemberService memberService;
 
+    private Member existingMember;
+
+    /**
+     * 성공적으로 회원가입을 처리하는 경우를 테스트합니다.
+     * 이메일과 닉네임이 중복되지 않으며 비밀번호가 요구 사항을 충족하는 경우에 대한 검증을 포함합니다.
+     */
     @Test
     public void signUp_Success() throws IOException {
-        // Given
+        // Given: 주어진 조건
         MemberDTO memberDTO = new MemberDTO();
         memberDTO.setEmail("test@example.com");
         memberDTO.setNickname("testUser");
         memberDTO.setPassword("Password@123");
 
+        // 모의 객체를 설정하여, 이메일과 닉네임이 중복되지 않음을 시뮬레이션합니다.
         when(memberRepository.existsByEmail(anyString())).thenReturn(false);
         when(memberRepository.existsByNickname(anyString())).thenReturn(false);
+        // 비밀번호 인코딩을 시뮬레이션합니다.
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
 
-        // When
+        // When: 실행할 작업
         memberService.signUp(memberDTO);
 
-        // Then
+        // Then: 기대하는 결과 검증
         verify(memberRepository, times(1)).save(any(Member.class));
     }
 
+    /**
+     * 프로필 이미지와 함께 성공적으로 회원가입을 처리하는 경우를 테스트합니다.
+     * 프로필 이미지가 S3에 업로드되고, 해당 URL이 Member 객체에 저장되는 과정을 검증합니다.
+     */
     @Test
     public void signUp_Success_WithProfileImage() throws IOException {
-        // Given
+        // Given: 주어진 조건
         MemberDTO memberDTO = new MemberDTO();
         memberDTO.setEmail("testwithimage@example.com");
         memberDTO.setNickname("testUserImage");
         memberDTO.setPassword("Password@123");
 
-        // 프로필 이미지를 위한 MockMultipartFile 객체 생성
-        MultipartFile profileImage = new MockMultipartFile(
-                "profile", // 파일 파라미터 이름
-                "profile.jpg", // 파일 이름
-                "image/jpeg", // 파일 타입
-                "<<jpeg data>>".getBytes() // 파일 내용
-        );
+        MultipartFile profileImage = new MockMultipartFile("profile", "profile.jpg", "image/jpeg", "<<jpeg data>>".getBytes());
         memberDTO.setProfile(profileImage);
 
-        // 모의 객체 설정
         when(memberRepository.existsByEmail(anyString())).thenReturn(false);
         when(memberRepository.existsByNickname(anyString())).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
-        // S3Service를 통해 파일 업로드를 시뮬레이션합니다. 업로드된 파일 URL을 반환하도록 설정합니다.
         when(s3Service.uploadFile(any(MultipartFile.class), anyString(), anyString())).thenReturn("http://example.com/profile.jpg");
 
-        // When
+        // When: 실행할 작업
         memberService.signUp(memberDTO);
 
-        // Then
-        // Member 객체가 저장되었는지 확인합니다. 이때, 프로필 이미지 URL이 설정된 Member 객체가 저장되었는지 검증할 수 있습니다.
+        // Then: 기대하는 결과 검증
         verify(memberRepository, times(1)).save(any(Member.class));
-        // S3Service의 uploadFile 메소드가 호출되었는지 확인합니다.
         verify(s3Service, times(1)).uploadFile(any(MultipartFile.class), anyString(), anyString());
     }
 
+    /**
+     * 이메일이 이미 존재하는 경우 회원가입 실패를 테스트합니다.
+     * 이미 존재하는 이메일로 회원가입 시도 시, ResponseStatusException 예외가 발생하는지 검증합니다.
+     */
     @Test
     public void signUp_Fail_IfEmailExists() {
-        // Given
+        // Given: 주어진 조건
         MemberDTO memberDTO = new MemberDTO();
         memberDTO.setEmail("existing@example.com");
         memberDTO.setNickname("testUser");
         memberDTO.setPassword("Password@123");
-        // 프로필 이미지 설정은 생략됨
 
+        // 이메일이 이미 존재함을 시뮬레이션합니다.
         when(memberRepository.existsByEmail(anyString())).thenReturn(true);
 
-        // When & Then
+        // When & Then: 실행 및 예외 발생 검증
         assertThrows(ResponseStatusException.class, () -> memberService.signUp(memberDTO));
     }
-}
 
+    /**
+     * 회원 정보 업데이트를 테스트합니다.
+     * 새 닉네임과 프로필 이미지가 제공되면, 해당 정보로 기존 회원 정보가 업데이트되어야 합니다.
+     */
+    @Test
+    @DisplayName("회원 정보 업데이트 테스트")
+    void updateMemberInfoTest() throws IOException {
+        Long memberId = 1L;
+        Member existingMember = new Member();
+        existingMember.setId(memberId);
+        existingMember.setEmail("test@example.com");
+        existingMember.setJoinDay(LocalDateTime.now());
+
+        MemberDTO memberDTO = new MemberDTO();
+        memberDTO.setNickname("updatedUser");
+
+        MockMultipartFile profileImage = new MockMultipartFile("profile", "profile.png", "image/png", "imageData".getBytes());
+
+        // memberId에 해당하는 Member 객체를 조회하려 할 때, 항상 특정 Member 객체를 반환하도록 설정합니다.
+        // 이렇게 함으로써, 실제 데이터베이스에 접근하지 않아도 테스트 케이스에서는 Member 객체가 정상적으로 조회되는 것처럼 동작합니다.
+        when(memberRepository.findById(anyLong())).thenReturn(Optional.of(existingMember));
+
+        // S3Service의 uploadFile 메서드가 호출될 때, 어떤 MultipartFile 객체가 전달되든지 "updatedProfileUrl" 문자열을 반환하도록 설정합니다.
+        // 이는 실제로 외부 S3 스토리지에 파일을 업로드하지 않고도, 파일 업로드가 성공적으로 이루어진 것처럼 테스트를 진행할 수 있게 합니다.
+        when(s3Service.uploadFile(any(MultipartFile.class), anyString(), anyString())).thenReturn("updatedProfileUrl");
+
+        // MemberRepository의 save 메서드가 호출될 때, 전달된 Member 객체를 그대로 반환하도록 설정합니다.
+        // 이는 save 메서드의 동작을 시뮬레이션하며, 실제로 데이터베이스에 데이터를 저장하지 않고도 save 메서드 호출 시
+        // 인자로 전달된 객체가 반환되는 것처럼 테스트 환경을 구성합니다.
+        // thenAnswer 메서드를 사용하여 메서드 호출 시 전달된 인자(invocation.getArgument(0))를 그대로 반환합니다.
+        when(memberRepository.save(any(Member.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Member updatedMember = memberService.updateMemberInfo(memberId, memberDTO, profileImage);
+
+        verify(memberRepository, times(1)).save(any(Member.class));
+        assert(updatedMember.getNickname().equals(memberDTO.getNickname()));
+        assert(updatedMember.getProfile().equals("updatedProfileUrl"));
+    }
+
+    @BeforeEach
+    void setUp() {
+        existingMember = new Member();
+        existingMember.setId(1L);
+        existingMember.setEmail("existing@example.com");
+        existingMember.setNickname("ExistingUser");
+        existingMember.setPassword("existingPassword");
+        existingMember.setProfile("http://example.com/existingProfile.jpg");
+
+        when(memberRepository.findById(anyLong())).thenReturn(Optional.of(existingMember));
+    }
+
+    /**
+     * 이메일 업데이트를 테스트합니다.
+     * 새로운 이메일이 제공되면 해당 이메일로 회원 정보가 업데이트되어야 합니다.
+     */
+    @Test
+    @DisplayName("이메일 업데이트 테스트")
+    void updateMemberEmail() throws IOException {
+        MemberDTO memberDTO = new MemberDTO();
+        memberDTO.setEmail("updated@example.com");
+
+        memberService.updateMemberInfo(1L, memberDTO, null);
+
+        assertEquals("updated@example.com", existingMember.getEmail());
+        verify(memberRepository, times(1)).save(any(Member.class));
+    }
+
+    /**
+     * 닉네임 업데이트를 테스트합니다.
+     * 새로운 닉네임이 제공되면 해당 닉네임으로 회원 정보가 업데이트되어야 합니다.
+     */
+    @Test
+    @DisplayName("닉네임 업데이트 테스트")
+    void updateMemberNickname() throws IOException {
+        MemberDTO memberDTO = new MemberDTO();
+        memberDTO.setNickname("NewNickname");
+
+        memberService.updateMemberInfo(1L, memberDTO, null);
+
+        assertEquals("NewNickname", existingMember.getNickname());
+        verify(memberRepository, times(1)).save(any(Member.class));
+    }
+
+    /**
+     * 비밀번호 업데이트를 테스트합니다.
+     * 새로운 비밀번호가 제공되면 해당 비밀번호로 회원 정보가 업데이트되어야 합니다.
+     */
+    @Test
+    @DisplayName("비밀번호 업데이트 테스트")
+    void updateMemberPassword() throws IOException {
+        MemberDTO memberDTO = new MemberDTO();
+        memberDTO.setPassword("NewPassword123!");
+
+        when(passwordEncoder.encode("NewPassword123!")).thenReturn("encodedNewPassword");
+
+        memberService.updateMemberInfo(1L, memberDTO, null);
+
+        assertEquals("encodedNewPassword", existingMember.getPassword());
+        verify(passwordEncoder, times(1)).encode("NewPassword123!");
+        verify(memberRepository, times(1)).save(any(Member.class));
+    }
+
+    /**
+     * 프로필 이미지 업데이트를 테스트합니다.
+     * 새로운 프로필 이미지가 제공되면 해당 이미지로 회원 정보가 업데이트되어야 합니다.
+     */
+    @Test
+    @DisplayName("프로필 이미지 업데이트 테스트")
+    void updateMemberProfileImage() throws IOException {
+        MultipartFile newProfileImage = new MockMultipartFile("newProfile", "newProfile.jpg", "image/jpeg", "new image content".getBytes());
+
+        when(s3Service.uploadFile(any(MultipartFile.class), anyString(), anyString())).thenReturn("http://example.com/newProfile.jpg");
+
+        memberService.updateMemberInfo(1L, new MemberDTO(), newProfileImage);
+
+        assertEquals("http://example.com/newProfile.jpg", existingMember.getProfile());
+        verify(s3Service, times(1)).uploadFile(any(MultipartFile.class), anyString(), anyString());
+        verify(memberRepository, times(1)).save(any(Member.class));
+    }
+}
