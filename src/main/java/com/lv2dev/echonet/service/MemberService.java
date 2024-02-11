@@ -110,4 +110,28 @@ public class MemberService {
         String uniqueFileName = UUID.randomUUID().toString() + "_" + System.currentTimeMillis();
         return s3Service.uploadFile(profileImage, "member/profile", uniqueFileName);
     }
+
+    /**
+     * 사용자의 비밀번호를 재설정합니다.
+     *
+     * @param email 비밀번호를 재설정하려는 사용자의 이메일 주소입니다.
+     * @param newPassword 사용자가 설정할 새로운 비밀번호입니다.
+     * @throws ResponseStatusException 사용자를 찾을 수 없거나, 기타 오류 발생 시 예외를 발생시킵니다.
+     */
+    public void resetPassword(String email, String newPassword) {
+        // 사용자 이메일로 회원 정보 조회
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found with email: " + email));
+
+        // 새 비밀번호를 암호화
+        String encodedPassword = passwordEncoder.encode(newPassword);
+
+        // 암호화된 비밀번호로 회원 정보 업데이트
+        member.setPassword(encodedPassword);
+        memberRepository.save(member);
+
+        // 변경 성공 후 회원에게 이메일 전송
+    }
+
+
 }
