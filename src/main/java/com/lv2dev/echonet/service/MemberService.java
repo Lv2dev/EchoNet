@@ -16,14 +16,13 @@ import java.util.UUID;
 
 @Service
 public class MemberService {
-    @Autowired
     private MemberRepository memberRepository;
 
-    @Autowired
     private PasswordEncoder passwordEncoder;
 
-    @Autowired
     private S3Service s3Service;
+
+    private EmailService emailService;
 
     public void signUp(MemberDTO memberDTO) throws IOException {
         // 이메일 중복 확인
@@ -131,6 +130,7 @@ public class MemberService {
         memberRepository.save(member);
 
         // 변경 성공 후 회원에게 이메일 전송
+        emailService.sendEmailNotification(email, "비밀번호 변경 알림", "귀하의 비밀번호가 성공적으로 변경되었습니다.");
     }
 
 
