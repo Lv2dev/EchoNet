@@ -134,4 +134,17 @@ public class MemberService {
     }
 
 
+    /**
+     * 이메일 주소로 사용자를 찾습니다.
+     *
+     * @param email 사용자를 찾으려는 이메일 주소입니다.
+     * @return Member 이메일 주소를 가진 사용자입니다.
+     * @throws ResponseStatusException 사용자를 찾을 수 없거나, 기타 오류 발생 시 예외를 발생시킵니다.
+     */
+    public Member findMemberByEmail(String email) {
+        return memberRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "User not found"));
+    }
+
+
 }
