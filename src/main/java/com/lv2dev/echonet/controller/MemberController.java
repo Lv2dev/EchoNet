@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
@@ -49,5 +50,26 @@ public class MemberController {
         }
         memberService.resetPassword(email, newPassword);
         return ResponseEntity.ok().body("Password changed successfully");
+    }
+
+    /**
+     * 사용자의 정보를 업데이트합니다.
+     *
+     * @param memberId 업데이트할 회원의 ID.
+     * @param memberDTO 회원의 새 정보가 담긴 객체.
+     * @param profileImage 업데이트가 요청된 새 프로필 이미지 파일; 그렇지 않으면 null.
+     * @return ResponseEntity 업데이트 성공 메시지를 담은 HTTP 응답입니다.
+     * @throws ResponseStatusException 회원을 찾을 수 없거나, 기타 오류 발생 시 예외를 발생시킵니다.
+     */
+    @PutMapping("/{memberId}")
+    public ResponseEntity<String> updateMemberInfo(@PathVariable Long memberId, @RequestBody MemberDTO memberDTO, @RequestParam(required = false) MultipartFile profileImage) {
+        try {
+            memberService.updateMemberInfo(memberId, memberDTO, profileImage);
+            return ResponseEntity.ok().body("Member information updated successfully");
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred");
+        }
     }
 }
