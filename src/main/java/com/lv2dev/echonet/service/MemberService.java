@@ -4,6 +4,7 @@ import com.lv2dev.echonet.dto.MemberDTO;
 import com.lv2dev.echonet.model.Member;
 import com.lv2dev.echonet.persistence.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Random;
 import java.util.UUID;
 
 @Service
@@ -23,6 +25,10 @@ public class MemberService {
     private S3Service s3Service;
 
     private EmailService emailService;
+
+    //secretKey 추가
+    @Value("${secretKey}")
+    private String secretKey;
 
     public void signUp(MemberDTO memberDTO) throws IOException {
         // 이메일 중복 확인
@@ -144,6 +150,51 @@ public class MemberService {
     public Member findMemberByEmail(String email) {
         return memberRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "User not found"));
+    }
+
+
+    /**
+     * 사용자가 비밀번호를 잊어버렸을 때, 이메일을 통해 비밀번호 재설정 링크를 요청할 수 있는 기능을 추가합니다.
+     * 이 메소드는 임시 비밀번호를 생성하고 이를 이메일로 전송하는 기능을 수행합니다.
+     *
+     * @param email 비밀번호를 재설정하려는 사용자의 이메일 주소입니다.
+     * @throws ResponseStatusException 사용자를 찾을 수 없거나, 기타 오류 발생 시 예외를 발생시킵니다.
+     */
+    public void requestPasswordReset(String email) {
+        // 사용자 이메일로 회원 정보 조회
+        Member member = findMemberByEmail(email);
+
+        // 임시 비밀번호 생성
+        String tempPassword = generateTempPassword();
+
+        // 임시 비밀번호를 암호화하여 회원 정보 업데이트
+        member.setPassword(passwordEncoder.encode(tempPassword));
+        memberRepository.save(member);
+
+        // 임시 비밀번호를 이메일로 전송
+        emailService.sendEmailNotification(email, "비밀번호 재설정 요청", "귀하의 임시 비밀번호는 " + tempPassword + "입니다.");
+    }
+
+    /**
+     * 임시 비밀번호를 생성하는 메소드입니다.
+     * 이 메소드는 8자리의 랜덤한 문자열을 생성하여 반환합니다.
+     *
+     * @return String 생성된 임시 비밀번호입니다.
+     */
+    private String generateTempPassword() {
+        // 비밀번호에 사용될 문자 세트
+        String chars = secretKey;
+
+        // 랜덤 객체 생성
+        Random rnd = new Random();
+
+        // 8자리의 랜덤 문자열 생성
+        StringBuilder tempPassword = new StringBuilder(8);
+        for (int i = 0; i < 8; i++) {
+            tempPassword.append(chars.charAt(rnd.nextInt(chars.length())));
+        }
+
+        return tempPassword.toString();
     }
 
 
