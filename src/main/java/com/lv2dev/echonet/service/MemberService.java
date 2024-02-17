@@ -197,5 +197,31 @@ public class MemberService {
         return tempPassword.toString();
     }
 
+    /**
+     * 사용자의 닉네임을 변경합니다.
+     *
+     * @param memberId 변경하려는 사용자의 ID.
+     * @param newNickname 사용자가 설정할 새로운 닉네임.
+     */
+    public void changeNickname(Long memberId, String newNickname) {
+        Member member = findMemberById(memberId);
+        member.setNickname(newNickname);
+        memberRepository.save(member);
+    }
+
+    /**
+     * 사용자의 프로필 이미지를 변경합니다.
+     *
+     * @param memberId 변경하려는 사용자의 ID.
+     * @param newProfileImage 사용자가 설정할 새로운 프로필 이미지.
+     * @throws IOException 프로필 이미지 업로드 중 오류 발생 시.
+     */
+    public void changeProfileImage(Long memberId, MultipartFile newProfileImage) throws IOException {
+        Member member = findMemberById(memberId);
+        String profileUrl = uploadProfileImage(newProfileImage);
+        member.setProfile(profileUrl);
+        memberRepository.save(member);
+    }
+
 
 }

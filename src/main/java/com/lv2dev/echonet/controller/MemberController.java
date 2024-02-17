@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+
 @RestController
 @RequestMapping("/members")
 public class MemberController {
@@ -71,5 +73,31 @@ public class MemberController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred");
         }
+    }
+
+    /**
+     * 사용자의 닉네임을 변경합니다.
+     *
+     * @param memberId 변경하려는 사용자의 ID.
+     * @param newNickname 사용자가 설정할 새로운 닉네임.
+     * @return ResponseEntity 변경 성공 메시지를 담은 HTTP 응답입니다.
+     */
+    @PutMapping("/{memberId}/nickname")
+    public ResponseEntity<String> changeNickname(@PathVariable Long memberId, @RequestParam String newNickname) {
+        memberService.changeNickname(memberId, newNickname);
+        return ResponseEntity.ok().body("Nickname changed successfully");
+    }
+
+    /**
+     * 사용자의 프로필 이미지를 변경합니다.
+     *
+     * @param memberId 변경하려는 사용자의 ID.
+     * @param newProfileImage 사용자가 설정할 새로운 프로필 이미지.
+     * @return ResponseEntity 변경 성공 메시지를 담은 HTTP 응답입니다.
+     */
+    @PutMapping("/{memberId}/profile-image")
+    public ResponseEntity<String> changeProfileImage(@PathVariable Long memberId, @RequestParam MultipartFile newProfileImage) throws IOException {
+        memberService.changeProfileImage(memberId, newProfileImage);
+        return ResponseEntity.ok().body("Profile image changed successfully");
     }
 }
