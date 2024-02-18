@@ -238,4 +238,36 @@ public class MemberServiceTest {
         verify(s3Service, times(1)).uploadFile(any(MultipartFile.class), anyString(), anyString());
         verify(memberRepository, times(1)).save(any(Member.class));
     }
+
+    /**
+     * 비밀번호 재설정 요청이 성공적으로 이메일로 임시 비밀번호를 전송하는지 테스트합니다.
+     */
+    @Test
+    public void testRequestPasswordReset_Successful() {
+        // 모의 설정
+        String email = "user@example.com";
+        Member mockMember = new Member();
+        mockMember.setEmail(email);
+        when(memberRepository.findByEmail(email)).thenReturn(Optional.of(mockMember);
+        when(passwordEncoder.encode(anyString())).thenReturn("encryptedPassword");
+
+        // 테스트 대상 메소드 실행
+        memberService.requestPasswordReset(email);
+
+        // 상호작용 및 결과 검증
+        verify(memberRepository).save(any(Member.class));
+    }
+
+    /**
+     * 존재하지 않는 이메일에 대한 비밀번호 재설정 요청 시 ResponseStatusException이 발생하는지 테스트합니다.
+     */
+    @Test
+    public void testRequestPasswordReset_UserNotFound_ThrowsException() {
+        // 존재하지 않는 사용자 설정
+        String email = "nonexistent@example.com";
+        when(memberRepository.findByEmail(email)).thenReturn(null);
+
+        // 예외가 발생하는지 확인
+        assertThrows(ResponseStatusException.class, () -> memberService.requestPasswordReset(email));
+    }
 }
