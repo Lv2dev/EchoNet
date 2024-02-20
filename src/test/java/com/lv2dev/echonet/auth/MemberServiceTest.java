@@ -248,7 +248,7 @@ public class MemberServiceTest {
         String email = "user@example.com";
         Member mockMember = new Member();
         mockMember.setEmail(email);
-        when(memberRepository.findByEmail(email)).thenReturn(Optional.of(mockMember);
+        when(memberRepository.findByEmail(email)).thenReturn(Optional.of(mockMember));
         when(passwordEncoder.encode(anyString())).thenReturn("encryptedPassword");
 
         // 테스트 대상 메소드 실행
