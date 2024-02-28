@@ -6,6 +6,9 @@ import com.lv2dev.echonet.persistence.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,6 +28,14 @@ public class MemberService {
     private S3Service s3Service;
 
     private EmailService emailService;
+
+    // 최대 로그인 시도 횟수
+    @Value("${maxLoginAttempt}")
+    private int MAX_LOGIN_ATTEMPT;
+
+    // 계정 잠금 시간 (시간 단위)
+    @Value("${lockTimeHours}")
+    private int LOCK_TIME_HOURS;
 
     //secretKey 추가
     @Value("${secretKey}")
@@ -221,6 +232,31 @@ public class MemberService {
         String profileUrl = uploadProfileImage(newProfileImage);
         member.setProfile(profileUrl);
         memberRepository.save(member);
+    }
+
+    public Member login(String email, String password) {
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+
+        if (member.getLoginAttempt() >= MAX_LOGIN_ATTEMPT) {
+            if (member.getLastLoginAttempt().isBefore(LocalDateTime.now().minusHours(LOCK_TIME_HOURS))) {
+                member.setLoginAttempt(0);
+            } else {
+                throw new LockedException("Account is locked due to too many failed login attempts. Please try again later.");
+            }
+        }
+
+        if (!passwordEncoder.matches(password, member.getPassword())) {
+            member.setLoginAttempt(member.getLoginAttempt() + 1);
+            member.setLastLoginAttempt(LocalDateTime.now());
+            memberRepository.save(member);
+            throw new BadCredentialsException("Invalid password");
+        }
+
+        member.setLoginAttempt(0);
+        memberRepository.save(member);
+
+        return member;
     }
 
 

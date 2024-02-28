@@ -45,4 +45,10 @@ public class Member {
 
     @Column(name = "state")
     private int state;
+
+    @Column(name = "login_attempt")
+    private int loginAttempt; // 로그인 시도 횟수
+
+    @Column(name = "last_login_attempt")
+    private LocalDateTime lastLoginAttempt; // 마지막 로그인 시도 시각
 }
