@@ -233,7 +233,17 @@ public class MemberService {
         member.setProfile(profileUrl);
         memberRepository.save(member);
     }
-
+    /**
+     * 사용자가 시스템에 로그인하는 메서드입니다.
+     * 이메일과 비밀번호를 인자로 받아 해당 정보가 유효한지 검증합니다.
+     *
+     * @param email 사용자가 입력한 이메일 주소입니다.
+     * @param password 사용자가 입력한 비밀번호입니다.
+     * @return Member 로그인에 성공한 사용자의 정보를 담고 있는 Member 객체를 반환합니다.
+     * @throws UsernameNotFoundException 입력한 이메일에 해당하는 사용자를 찾을 수 없을 때 발생합니다.
+     * @throws LockedException 사용자가 로그인 시도 횟수 제한을 초과하여 계정이 잠겼을 때 발생합니다.
+     * @throws BadCredentialsException 입력한 비밀번호가 일치하지 않을 때 발생합니다.
+     */
     public Member login(String email, String password) {
         Member member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
