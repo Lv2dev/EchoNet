@@ -8,7 +8,7 @@ import com.lv2dev.echonet.model.Member;
 import java.util.Optional;
 
 @Repository
-public interface MemberRepository extends JpaRepository<Member, Integer> {
+public interface MemberRepository extends JpaRepository<Member, Long> {
     /**
      * 이메일로 찾기
      * */

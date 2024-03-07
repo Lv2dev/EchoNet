@@ -269,5 +269,24 @@ public class MemberService {
         return member;
     }
 
+    /**
+     * 회원 탈퇴 기능을 수행하는 메소드입니다.
+     * 이 메소드는 회원의 ID를 인자로 받아 해당 회원을 데이터베이스에서 삭제합니다.
+     *
+     * 구현 시에는 비밀번호를 입력받아 인증을 수행하도록 구현한다.
+     *
+     * @param memberId 탈퇴하려는 회원의 ID.
+     * @throws IllegalArgumentException 해당 ID를 가진 회원이 없을 경우 발생합니다.
+     */
+    public void deleteMember(Long memberId) {
+        // 회원 존재 여부 확인
+        if (!memberRepository.existsById(memberId)) {
+            throw new IllegalArgumentException("Member not found with id: " + memberId);
+        }
+
+        // 회원 삭제
+        memberRepository.deleteById(memberId);
+    }
+
 
 }
