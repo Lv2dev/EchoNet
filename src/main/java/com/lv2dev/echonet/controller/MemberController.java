@@ -102,13 +102,20 @@ public class MemberController {
     }
 
     /**
-     * Deletes a member with the given ID.
+     * 주어진 ID의 회원을 삭제합니다.
      *
-     * @param memberId The ID of the member to delete.
-     * @return A ResponseEntity with HTTP status code.
+     * @param memberId 삭제할 회원의 ID.
+     * @return HTTP 상태 코드를 포함한 ResponseEntity.
      */
     @DeleteMapping("/members/{memberId}")
-    public ResponseEntity<Void> deleteMember(@PathVariable Long memberId) {
+    public ResponseEntity<String> deleteMember(@PathVariable Long memberId, @RequestParam String password) {
+        Member member = memberService.findMemberById(memberId);
+        if (member == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Member not found");
+        }
+        if (!passwordEncoder.matches(password, member.getPassword())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Incorrect password");
+        }
         memberService.deleteMember(memberId);
         return ResponseEntity.noContent().build();
     }

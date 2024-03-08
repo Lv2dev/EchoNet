@@ -101,7 +101,7 @@ public class MemberService {
         return memberRepository.save(existingMember);
     }
 
-    private Member findMemberById(Long memberId) {
+    public Member findMemberById(Long memberId) {
         return memberRepository.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("Member not found with id: " + memberId));
     }
