@@ -100,4 +100,16 @@ public class MemberController {
         memberService.changeProfileImage(memberId, newProfileImage);
         return ResponseEntity.ok().body("Profile image changed successfully");
     }
+
+    /**
+     * Deletes a member with the given ID.
+     *
+     * @param memberId The ID of the member to delete.
+     * @return A ResponseEntity with HTTP status code.
+     */
+    @DeleteMapping("/members/{memberId}")
+    public ResponseEntity<Void> deleteMember(@PathVariable Long memberId) {
+        memberService.deleteMember(memberId);
+        return ResponseEntity.noContent().build();
+    }
 }
