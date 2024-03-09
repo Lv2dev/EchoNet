@@ -270,4 +270,25 @@ public class MemberServiceTest {
         // 예외가 발생하는지 확인
         assertThrows(ResponseStatusException.class, () -> memberService.requestPasswordReset(email));
     }
+
+    /**
+     * 회원 탈퇴 기능을 테스트하는 메소드입니다.
+     * 먼저, 테스트에 필요한 Member 객체를 생성하고 저장합니다.
+     * 그 다음, deleteMember 메소드를 호출하여 회원을 삭제합니다.
+     * 마지막으로, 해당 회원이 더 이상 데이터베이스에 존재하지 않는지 확인하여 deleteMember 메소드가 성공적으로 실행되었는지 확인합니다.
+     */
+    @Test
+    public void testDeleteMember() {
+        // 테스트에 필요한 Member 객체를 생성하고 저장합니다.
+        Member member = new Member();
+        member.setId(1L);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(member));
+        doNothing().when(memberRepository).deleteById(any(Long.class));
+
+        // deleteMember 메소드를 호출하여 회원을 삭제합니다.
+        memberService.deleteMember(1L);
+
+        // 해당 회원이 더 이상 데이터베이스에 존재하지 않는지 확인하여 deleteMember 메소드가 성공적으로 실행되었는지 확인합니다.
+        assertFalse(memberRepository.findById(1L).isPresent());
+    }
 }
