@@ -2,8 +2,10 @@ package com.lv2dev.echonet.controller;
 
 import com.lv2dev.echonet.model.Member;
 import com.lv2dev.echonet.persistence.MemberRepository;
+import com.lv2dev.echonet.service.MemberService;
 import com.lv2dev.echonet.service.TokenService;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -24,16 +26,20 @@ public class TokenController {
 
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private MemberService memberService;
+
     /**
      * 사용자 로그인 처리.
      * 성공 시, AccessToken을 반환하고 RefreshToken을 HttpOnly 쿠키로 설정.
      *
      * @param loginDetails 로그인 정보
      * @param response     클라이언트 응답 객체
+     * @param request HttpServletRequest 객체
      * @return AccessToken 문자열
      */
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody Member loginDetails, HttpServletResponse response) {
+    public ResponseEntity<String> login(@RequestBody Member loginDetails, HttpServletResponse response, HttpServletRequest request) {
         // 사용자 이메일로 멤버 조회
         Member member = memberRepository.findByEmail(loginDetails.getEmail())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid email or password"));
@@ -42,6 +48,9 @@ public class TokenController {
         if (!passwordEncoder.matches(loginDetails.getPassword(), member.getPassword())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid email or password");
         }
+
+        // 로그인 기록 저장
+        memberService.createLoginHistory(member, request);
 
         // AccessToken 생성
         String accessToken = tokenService.createAccessToken(member);

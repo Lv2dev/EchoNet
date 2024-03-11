@@ -1,8 +1,11 @@
 package com.lv2dev.echonet.service;
 
 import com.lv2dev.echonet.dto.MemberDTO;
+import com.lv2dev.echonet.model.LoginHistory;
 import com.lv2dev.echonet.model.Member;
+import com.lv2dev.echonet.persistence.LoginHistoryRepository;
 import com.lv2dev.echonet.persistence.MemberRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -28,6 +31,9 @@ public class MemberService {
     private S3Service s3Service;
 
     private EmailService emailService;
+
+    @Autowired
+    private LoginHistoryRepository loginHistoryRepository;
 
     // 최대 로그인 시도 횟수
     @Value("${maxLoginAttempt}")
@@ -286,6 +292,37 @@ public class MemberService {
 
         // 회원 삭제
         memberRepository.deleteById(memberId);
+    }
+
+
+    /**
+     * 로그인 기록을 생성하는 메소드입니다.
+     * 로그인한 회원의 정보, 로그인 시간, IP 주소, 브라우저 정보, 디바이스 정보를 설정한 후에 이를 저장합니다.
+     *
+     * @param member 로그인한 회원
+     * @param request HttpServletRequest 객체
+     */
+    public void createLoginHistory(Member member, HttpServletRequest request) {
+        // 로그인 기록 객체를 생성합니다.
+        LoginHistory loginHistory = new LoginHistory();
+
+        // 로그인한 회원의 정보를 설정합니다.
+        loginHistory.setMember(member);
+
+        // 로그인 시간을 설정합니다.
+        loginHistory.setLoginTime(LocalDateTime.now());
+
+        // IP 주소를 설정합니다.
+        loginHistory.setIpAddress(request.getRemoteAddr());
+
+        // 브라우저 정보를 설정합니다.
+        loginHistory.setBrowserInfo(request.getHeader("User-Agent"));
+
+        // 디바이스 정보를 설정합니다. 실제 환경에서는 디바이스 정보를 얻는 라이브러리를 사용할 수 있습니다.
+        loginHistory.setDeviceInfo("Unknown");
+
+        // 로그인 기록을 저장합니다.
+        loginHistoryRepository.save(loginHistory);
     }
 
 
