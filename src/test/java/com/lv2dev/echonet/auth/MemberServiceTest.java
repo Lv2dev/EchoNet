@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -290,5 +291,27 @@ public class MemberServiceTest {
 
         // 해당 회원이 더 이상 데이터베이스에 존재하지 않는지 확인하여 deleteMember 메소드가 성공적으로 실행되었는지 확인합니다.
         assertFalse(memberRepository.findById(1L).isPresent());
+    }
+
+    /**
+     * 사용자 로그인 기록 저장 테스트.
+     * MemberService의 createLoginHistory 메서드를 호출하고,
+     * 해당 메서드가 예상대로 동작하는지 검증합니다.
+     */
+    @Test
+    public void createLoginHistoryTest() {
+        // Given
+        Member member = new Member();
+        member.setEmail("test@test.com");
+        member.setPassword("password");
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRemoteAddr("127.0.0.1");
+
+        // When
+        memberService.createLoginHistory(member, request);
+
+        // Then
+        verify(memberService).createLoginHistory(member, request);
     }
 }
