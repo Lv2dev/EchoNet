@@ -19,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 
@@ -323,6 +324,36 @@ public class MemberService {
 
         // 로그인 기록을 저장합니다.
         loginHistoryRepository.save(loginHistory);
+    }
+
+
+    /**
+     * 사용자의 비밀번호를 변경합니다.
+     *
+     * @param email        비밀번호를 변경하려는 사용자의 이메일 주소입니다.
+     * @param currentPassword 사용자의 현재 비밀번호입니다.
+     * @param newPassword  사용자가 설정할 새로운 비밀번호입니다.
+     * @throws IllegalArgumentException 현재 비밀번호가 올바르지 않거나, 사용자를 찾을 수 없는 경우 예외를 발생시킵니다.
+     */
+    public void changePassword(String email, String currentPassword, String newPassword) {
+        // 이메일을 통해 사용자를 찾습니다.
+        Optional<Member> memberOptional = memberRepository.findByEmail(email);
+
+        Member member = memberOptional.orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // 사용자를 찾을 수 없는 경우 예외를 발생시킵니다.
+        if (member == null) {
+            throw new IllegalArgumentException("User not found");
+        }
+
+        // 현재 비밀번호가 일치하는지 확인합니다.
+        if (!passwordEncoder.matches(currentPassword, member.getPassword())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+
+        // 비밀번호가 일치하면 새로운 비밀번호로 변경합니다.
+        member.setPassword(passwordEncoder.encode(newPassword));
+        memberRepository.save(member);
     }
 
 
