@@ -1,5 +1,6 @@
 package com.lv2dev.echonet.controller;
 
+import com.lv2dev.echonet.dto.ChangePasswordRequest;
 import com.lv2dev.echonet.dto.MemberDTO;
 import com.lv2dev.echonet.model.Member;
 import com.lv2dev.echonet.service.MemberService;
@@ -118,5 +119,18 @@ public class MemberController {
         }
         memberService.deleteMember(memberId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 사용자의 비밀번호를 변경하는 API입니다.
+     * 이 API는 사용자의 이메일, 현재 비밀번호, 그리고 새로운 비밀번호를 이용하여 비밀번호를 변경합니다.
+     *
+     * @param request 비밀번호 변경 요청 정보를 담고 있는 DTO입니다. 이메일, 현재 비밀번호, 새로운 비밀번호 정보를 포함하고 있습니다.
+     * @return ResponseEntity<Void> 비밀번호 변경이 성공하면 HTTP 상태 코드 200을 반환합니다.
+     */
+    @PutMapping("/change-password")
+    public ResponseEntity<Void> changePassword(@RequestBody ChangePasswordRequest request) {
+        memberService.changePassword(request.getEmail(), request.getCurrentPassword(), request.getNewPassword();
+        return ResponseEntity.ok().build();
     }
 }
