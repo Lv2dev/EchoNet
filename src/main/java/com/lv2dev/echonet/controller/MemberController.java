@@ -130,7 +130,7 @@ public class MemberController {
      */
     @PutMapping("/change-password")
     public ResponseEntity<Void> changePassword(@RequestBody ChangePasswordRequest request) {
-        memberService.changePassword(request.getEmail(), request.getCurrentPassword(), request.getNewPassword();
+        memberService.changePassword(request.getEmail(), request.getCurrentPassword(), request.getNewPassword());
         return ResponseEntity.ok().build();
     }
 }
