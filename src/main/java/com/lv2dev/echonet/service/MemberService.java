@@ -3,8 +3,10 @@ package com.lv2dev.echonet.service;
 import com.lv2dev.echonet.dto.MemberDTO;
 import com.lv2dev.echonet.model.LoginHistory;
 import com.lv2dev.echonet.model.Member;
+import com.lv2dev.echonet.model.PasswordResetToken;
 import com.lv2dev.echonet.persistence.LoginHistoryRepository;
 import com.lv2dev.echonet.persistence.MemberRepository;
+import com.lv2dev.echonet.persistence.PasswordResetTokenRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,8 +35,11 @@ public class MemberService {
 
     private EmailService emailService;
 
-    @Autowired
+    private PasswordResetTokenRepository passwordResetTokenRepository;
+
     private LoginHistoryRepository loginHistoryRepository;
+
+    private NotificationService notificationService;
 
     // 최대 로그인 시도 횟수
     @Value("${maxLoginAttempt}")
@@ -356,5 +361,19 @@ public class MemberService {
         memberRepository.save(member);
     }
 
+
+    /**
+     * 사용자를 위한 비밀번호 재설정 토큰을 생성하고, 이메일로 토큰을 보냅니다.
+     *
+     * @param user 토큰을 발급받는 사용자
+     * @param token 비밀번호 재설정 토큰 문자열
+     */
+    public void createPasswordResetTokenForUser(final Member user, final String token) {
+        final PasswordResetToken myToken = new PasswordResetToken(token, user);
+        passwordResetTokenRepository.save(myToken);
+        notificationService.sendEmailNotification(user.getEmail(), "Password reset request",
+                "To reset your password, click the link below:\n" +
+                        "http://localhost:8080/user/resetPassword?token=" + token);
+    }
 
 }
