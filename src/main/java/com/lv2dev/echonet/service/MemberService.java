@@ -53,6 +53,14 @@ public class MemberService {
     @Value("${secretKey}")
     private String secretKey;
 
+    //port
+    @Value("${server.port}")
+    private String port;
+
+    //domain
+    @Value("${server.domain}")
+    private String domain;
+
     public void signUp(MemberDTO memberDTO) throws IOException {
         // 이메일 중복 확인
         if (memberRepository.existsByEmail(memberDTO.getEmail())) {
@@ -373,7 +381,7 @@ public class MemberService {
         passwordResetTokenRepository.save(myToken);
         notificationService.sendEmailNotification(user.getEmail(), "Password reset request",
                 "To reset your password, click the link below:\n" +
-                        "http://localhost:8080/user/resetPassword?token=" + token);
+                        domain + port + "?token=" + token);
     }
 
 }

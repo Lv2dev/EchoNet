@@ -3,6 +3,7 @@ package com.lv2dev.echonet.auth;
 import com.lv2dev.echonet.dto.MemberDTO;
 import com.lv2dev.echonet.model.Member;
 import com.lv2dev.echonet.persistence.MemberRepository;
+import com.lv2dev.echonet.service.EmailService;
 import com.lv2dev.echonet.service.MemberService;
 import com.lv2dev.echonet.service.S3Service;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +48,9 @@ public class MemberServiceTest {
     private MemberService memberService;
 
     private Member existingMember;
+
+    @MockBean
+    private EmailService emailService;
 
     /**
      * 성공적으로 회원가입을 처리하는 경우를 테스트합니다.
@@ -313,5 +317,44 @@ public class MemberServiceTest {
 
         // Then
         verify(memberService).createLoginHistory(member, request);
+    }
+
+
+    /**
+     * 비밀번호 재설정 요청이 성공적으로 처리되는 경우를 테스트하는 메서드입니다.
+     * 이메일 주소를 인자로 받아 해당 이메일을 가진 사용자를 찾고, 임시 비밀번호를 생성하여 사용자의 비밀번호를 임시 비밀번호로 변경한 후,
+     * 이메일로 임시 비밀번호를 전송하는 과정을 검증합니다.
+     */
+    @Test
+    public void requestPasswordReset_Successful() {
+        // Given
+        String email = "user@example.com";
+        Member mockMember = new Member();
+        mockMember.setEmail(email);
+        when(memberRepository.findByEmail(email)).thenReturn(Optional.of(mockMember));
+        when(passwordEncoder.encode(anyString())).thenReturn("encryptedPassword");
+
+        // When
+        memberService.requestPasswordReset(email);
+
+        // Then
+        verify(memberRepository, times(1)).findByEmail(email);
+        verify(passwordEncoder, times(1)).encode(anyString());
+        verify(emailService, times(1)).sendEmailNotification(anyString(), anyString(), anyString());
+    }
+
+    /**
+     * 사용자를 찾을 수 없는 경우 비밀번호 재설정 요청이 실패하는지 테스트하는 메서드입니다.
+     * 존재하지 않는 이메일 주소를 인자로 받아 해당 이메일을 가진 사용자를 찾으려 할 때, 사용자를 찾을 수 없어서
+     * ResponseStatusException이 발생하는지 검증합니다.
+     */
+    @Test
+    public void requestPasswordReset_UserNotFound_ThrowsException() {
+        // Given
+        String email = "nonexistent@example.com";
+        when(memberRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThrows(ResponseStatusException.class, () -> memberService.requestPasswordReset(email));
     }
 }
